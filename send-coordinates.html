@@ -1,0 +1,119 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Elmo Thesis</title>
+</head>
+  <style>
+    /* First section styles */
+    .section1 {
+      background-color: #f2f2f2;
+      padding: 20px;
+    }
+
+    /* Second section styles */
+    .section2 {
+      background-color: #e6e6e6;
+      padding: 20px;
+    }
+  </style>
+<body>
+	<div class="section2">
+	<div id="output":align-right"></div>
+		<script>
+			const options = {
+			enableHighAccuracy: true, 
+			// Get high accuracy reading, if available (default false)
+			timeout: 5000, 
+			// Time to return a position successfully before error (default infinity)
+			maximumAge: 2000, 
+			// Milliseconds for which it is acceptable to use cached position (default 0)
+			};
+			navigator.geolocation.watchPosition(success, error, options);
+			// Fires success function immediately and when user position changes
+			function success(pos) {
+			const lat = pos.coords.latitude;
+			const lng = pos.coords.longitude;
+			const accuracy = pos.coords.accuracy; // Accuracy in metres
+			document.getElementById('output').innerText = `
+			User coordinates: 
+			Latitude ${lat}.
+			Longitude ${lng}.
+			Estimation accurate within ${Math.round(accuracy)} metres.`;
+			}
+			function error(err) {
+			if (err.code === 1) {
+			alert("Please allow geolocation access");
+			// Runs if user refuses access
+			} else {
+			alert("Cannot get current location");
+			// Runs if there was a technical problem.
+			}
+			}
+		</script>
+	</div>
+	<div class="section1">
+		<video id="camera-stream" width="400" height="300" autoplay></video>
+		<button id="capture-button">Capture Image</button>
+
+		<script>
+		var videoElement = document.getElementById('camera-stream');
+		var captureButton = document.getElementById('capture-button');
+
+		// Check if the browser supports the MediaDevices API
+		if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+		  // Access the camera
+		  navigator.mediaDevices.getUserMedia({ video: true })
+			.then(function(stream) {
+			  // Display the camera stream in the video element
+			  videoElement.srcObject = stream;
+			})
+			.catch(function(error) {
+			  console.log('Error accessing the camera:', error);
+			});
+		} else {
+		  console.log('Camera access not supported by this browser.');
+		}
+
+		// Handle capture button click event
+		captureButton.addEventListener('click', function() {
+		  var canvas = document.createElement('canvas');
+		  var context = canvas.getContext('2d');
+
+		  // Set canvas dimensions to match the video stream
+		  canvas.width = videoElement.videoWidth;
+		  canvas.height = videoElement.videoHeight;
+
+		  // Draw the current frame from the video onto the canvas
+		  context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+		  // Get the image data from the canvas as a data URL
+		  var imageDataURL = canvas.toDataURL('image/jpeg');
+
+		  // Perform further actions with the captured image data, such as sending it to a server
+		  sendImageToServer(imageDataURL);
+		});
+
+		// Example function to send the captured image data to a server
+		function sendImageToServer(imageData) {
+		  // You can use AJAX, fetch, or any other method to send the image data to a server
+		  // Here's a simple example using fetch and assuming there's an endpoint that accepts image data
+		  fetch('172.0.0.1', {
+			method: 'POST',
+			body: JSON.stringify({ image: imageData }),
+			headers: { 'Content-Type': 'application/json' }
+		  })
+			.then(function(response) {
+			  console.log('Image sent to the server successfully.');
+			})
+			.catch(function(error) {
+			  console.log('Error sending the image:', error);
+			});
+		}
+		</script>
+	</div>
+</body>
+</html>
