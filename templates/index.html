@@ -4,31 +4,30 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Upload</title>
+    <title>Image Gallery</title>
 </head>
 <body>
-    <h1>Image Upload</h1>
+    <h1>Image Gallery</h1>
 
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <label for="file">Choose an image:</label>
-        <input type="file" name="file" id="file" accept="image/*" required><br>
+    <form method="post" enctype="multipart/form-data">
+        <label for="title">Image Title:</label>
+        <input type="text" name="title" required><br>
 
-        <label for="coral">Coral:</label>
-        <input type="checkbox" name="coral" id="coral"><br>
+        <label for="image">Choose an image:</label>
+        <input type="file" name="image" accept="image/*" required><br>
 
-        <label for="seaweeds">Seaweeds:</label>
-        <input type="checkbox" name="seaweeds" id="seaweeds"><br>
-
-        <label for="seagrass">Seagrass:</label>
-        <input type="checkbox" name="seagrass" id="seagrass"><br>
-
-        <label for="latitude">Latitude:</label>
-        <input type="text" name="latitude" id="latitude" required><br>
-
-        <label for="longitude">Longitude:</label>
-        <input type="text" name="longitude" id="longitude" required><br>
-
-        <button type="submit">Upload</button>
+        <button type="submit">Submit</button>
     </form>
+
+    <hr>
+
+    <h2>Image Details:</h2>
+
+    {% for image in images %}
+        <div>
+            <h3>{{ image.title }}</h3>
+            <img src="{{ image.image_path }}" alt="{{ image.title }}" width="300">
+        </div>
+    {% endfor %}
 </body>
 </html>
