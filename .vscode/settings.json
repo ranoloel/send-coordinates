@@ -1,0 +1,12 @@
+{
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "db.sqlite3",
+            "group": "localhost:db.sqlite3",
+            "database": "C:\\Users\\Full Scale\\Documents\\CTUCT226\\ct226\\db.sqlite3"
+        }
+    ]
+}
