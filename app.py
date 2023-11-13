@@ -1,73 +1,63 @@
-from flask import Flask, render_template, request, jsonify
-import os
-import sqlite3
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+import cv2
+import base64
+from io import BytesIO
+import numpy as np
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///images.db'
+db = SQLAlchemy(app)
 
-# Specify the upload folder
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+class Image(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    class_type = db.Column(db.String(50))
+    status = db.Column(db.Integer)
+    image_data = db.Column(db.String)
 
-# Ensure the upload folder exists
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
-
-# Initialize SQLite database
-DATABASE = 'database.db'
-
-def create_table():
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS images (
-            id TEXT PRIMARY KEY,
-            date TEXT,
-            filename TEXT
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-
-# Function to insert data into the database
-def insert_into_database(image_id, image_date, filename):
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        INSERT INTO images (id, date, filename)
-        VALUES (?, ?, ?)
-    ''', (image_id, image_date, filename))
-
-    conn.commit()
-    conn.close()
-
-# Route to serve the HTML file from the 'templates' folder
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Route to handle image uploads
-@app.route('/upload', methods=['POST'])
-def upload():
+@app.route('/submit', methods=['POST'])
+def submit():
+    latitude_str = request.form.get('latitude')
+    longitude_str = request.form.get('longitude')
+
     try:
-        # Get the file and data from the request
-        file = request.files['file']
-        image_date = request.form['date']
-        image_id = request.form['id']
+        latitude = float(latitude_str)
+        longitude = float(longitude_str)
+    except ValueError:
+        return "Invalid latitude or longitude. Please enter numeric values."
 
-        # Save the file to the upload folder
-        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filename)
+    class_type = request.form.get('class_type')
+    status = request.form.get('status')
 
-        # Insert data into the database
-        insert_into_database(image_id, image_date, filename)
+    # Capture image from webcam
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
 
-        return jsonify({'message': 'File uploaded successfully'})
+    # Convert image to base64 for storage
+    _, buffer = cv2.imencode('.jpg', frame)
+    image_data = base64.b64encode(buffer).decode('utf-8')
+
+    new_image = Image(latitude=latitude, longitude=longitude, class_type=class_type, status=status, image_data=image_data)
+    db.session.add(new_image)
+    
+    try:
+        db.session.commit()
     except Exception as e:
-        return jsonify({'error': str(e)})
+        db.session.rollback()
+        return f"Error: {str(e)}"
+
+    return redirect(url_for('index'))
+
 
 if __name__ == '__main__':
-    create_table()
-    app.run(debug=True, port=5001)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True,port=5001)
+
