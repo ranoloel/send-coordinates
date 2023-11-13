@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Info</title>
+</head>
+<body>
+    <h1>Check Info</h1>
+    {% if new_image_data %}
+        <p>ID: {{ new_image_data.id }}</p>
+        <p>Image: {{ new_image_data.image }}</p>
+        <p>Date Imported: {{ new_image_data.date_imported }}</p>
+        <!-- Add more fields as needed -->
+    {% else %}
+        <p>No data found for the provided ID.</p>
+    {% endif %}
+</body>
+</html>

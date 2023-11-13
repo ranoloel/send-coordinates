@@ -19,7 +19,12 @@ class ImageData(db.Model):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # Query all data from the ImageData table
+    all_image_data = ImageData.query.all()
+    
+    # Pass the data to the template
+    return render_template('index.html', all_image_data=all_image_data)
+
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -44,7 +49,17 @@ def submit():
         db.session.add(new_image_data)
         db.session.commit()
 
-        return redirect(url_for('index'))
+        # Pass the new data to the template for rendering
+        return redirect(url_for('check_info', new_data=new_image_data.id))
+
+@app.route('/check-info/<int:new_data>')
+def check_info(new_data):
+    # Retrieve the newly added data from the database using the provided ID
+    new_image_data = db.session.get(ImageData, new_data)
+
+    # Pass the data to the template
+    return render_template('check_info.html', new_image_data=new_image_data)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
