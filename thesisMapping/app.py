@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
+import subprocess
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -31,7 +32,7 @@ def submit():
     if request.method == 'POST':
         # Access form data
         image = request.files['image']
-        date_imported = datetime.strptime(request.form['date_imported'], '%Y-%m-%d')
+        date_imported = datetime.strptime(request.form['date_imported'], '%Y-%m-%dT%H:%M')
         latitude = request.form['latitude']
         longitude = request.form['longitude']
         class_type = request.form['class_type']
@@ -48,6 +49,8 @@ def submit():
         # Add the instance to the database
         db.session.add(new_image_data)
         db.session.commit()
+
+        subprocess.run(['python', 'process.py'])
 
         # Pass the new data to the template for rendering
         return redirect(url_for('check_info', new_data=new_image_data.id))
