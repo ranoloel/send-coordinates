@@ -39,7 +39,8 @@ def submit():
         status = request.form['status']
 
         # Save the image to the 'static' folder (create 'static' folder in the same directory as 'app.py')
-        image.save(f'static/{image.filename}')
+        # image.save(f'static/{image.filename}')
+        image.save(f'TrainYourOwnYOLO/Data/Source_Images/Test_Images/{image.filename}')
 
         # Create a new ImageData instance
         new_image_data = ImageData(image=image.filename, date_imported=date_imported,
@@ -50,7 +51,7 @@ def submit():
         db.session.add(new_image_data)
         db.session.commit()
 
-        subprocess.run(['python', 'process.py'])
+        subprocess.run(['python', 'Detector.py'])
 
         # Pass the new data to the template for rendering
         return redirect(url_for('check_info', new_data=new_image_data.id))
