@@ -1,84 +1,63 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+import cv2
+import base64
+from io import BytesIO
+import numpy as np
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///image_database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///images.db'
 db = SQLAlchemy(app)
 
-# Define the database models
 class Image(db.Model):
-    image_id = db.Column(db.Integer, primary_key=True)
-    image_path = db.Column(db.String(255))
-    upload_date = db.Column(db.TIMESTAMP)
-    classifications = db.relationship('Classification', backref='image', lazy=True)
-    locations = db.relationship('Location', backref='image', lazy=True)
-
-class Classification(db.Model):
-    classification_id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.Integer, db.ForeignKey('image.image_id'), nullable=False)
-    coral = db.Column(db.Boolean)
-    seaweeds = db.Column(db.Boolean)
-    seagrass = db.Column(db.Boolean)
-
-class Location(db.Model):
-    location_id = db.Column(db.Integer, primary_key=True)
-    image_id = db.Column(db.Integer, db.ForeignKey('image.image_id'), nullable=False)
-    latitude = db.Column(db.DECIMAL(9,6))
-    longitude = db.Column(db.DECIMAL(9,6))
-
-# Create the tables
-with app.app_context():
-    db.create_all()
+    id = db.Column(db.Integer, primary_key=True)
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
+    class_type = db.Column(db.String(50))
+    status = db.Column(db.Integer)
+    image_data = db.Column(db.String)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'file' not in request.files:
-        return redirect(request.url)
+@app.route('/submit', methods=['POST'])
+def submit():
+    latitude_str = request.form.get('latitude')
+    longitude_str = request.form.get('longitude')
 
-    file = request.files['file']
+    try:
+        latitude = float(latitude_str)
+        longitude = float(longitude_str)
+    except ValueError:
+        return "Invalid latitude or longitude. Please enter numeric values."
 
-    if file.filename == '':
-        return redirect(request.url)
+    class_type = request.form.get('class_type')
+    status = request.form.get('status')
 
-    if file:
-        # Save the image to the server
-        image_path = f"uploads/{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
-        file.save(image_path)
+    # Capture image from webcam
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
 
-        # Create a new image record in the database
-        new_image = Image(image_path=image_path, upload_date=datetime.now())
-        db.session.add(new_image)
+    # Convert image to base64 for storage
+    _, buffer = cv2.imencode('.jpg', frame)
+    image_data = base64.b64encode(buffer).decode('utf-8')
+
+    new_image = Image(latitude=latitude, longitude=longitude, class_type=class_type, status=status, image_data=image_data)
+    db.session.add(new_image)
+    
+    try:
         db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return f"Error: {str(e)}"
 
-        # Retrieve image_id for the new image
-        image_id = new_image.image_id
+    return redirect(url_for('index'))
 
-        # Retrieve classification and location details from the form
-        coral = request.form.get('coral') == 'on'
-        seaweeds = request.form.get('seaweeds') == 'on'
-        seagrass = request.form.get('seagrass') == 'on'
-        latitude = request.form.get('latitude')
-        longitude = request.form.get('longitude')
-
-        # Create classification record
-        new_classification = Classification(image_id=image_id, coral=coral, seaweeds=seaweeds, seagrass=seagrass)
-        db.session.add(new_classification)
-
-        # Create location record
-        new_location = Location(image_id=image_id, latitude=latitude, longitude=longitude)
-        db.session.add(new_location)
-
-        # Commit changes to the database
-        db.session.commit()
-
-        return redirect(url_for('index'))
-
-    return redirect(request.url)
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True,port=5001)
+
